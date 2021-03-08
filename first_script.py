@@ -612,7 +612,6 @@ clf.score(X_test, y_test)
 r = export_text(clf, list(X.columns))
 print(r)
 
-
 # Nested cross-validation
 nested_score_rf = np.zeros(4)
 
