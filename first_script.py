@@ -435,7 +435,7 @@ for letter in radar_list:
 #with or without lVP   
     listes=[C,D,CD]
     x = "CC_16"
-    y= "CC_10"
+    y = "CC_10"
     z= "lVP"
     name = "_16_10_scatter"
     tridim_plot(listes,x,y,z,name)
