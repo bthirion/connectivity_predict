@@ -237,7 +237,7 @@ neuro_columns = [
 # CALCULATE VOLUME OF RESECTION CAVITY (in MNI space) FROM .NII  FILE
 for liste in group_list : 
     for i in liste.index : 
-        INPUT = image_dir + liste.loc[i,"NaNme_image"]
+        INPUT = image_dir + liste.loc[i, "NaNme_image"]
     
     # Load data
         nii = nb.load(INPUT)
