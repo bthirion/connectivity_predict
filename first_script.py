@@ -254,7 +254,7 @@ for liste in group_list :
         nonzero_voxel_count = np.count_nonzero(img)
         voxel_volume = np.prod(voxel_dims)
         nonzero_voxel_volume = nonzero_voxel_count * voxel_volume
-        liste.loc[i,"volume_lesion"]= nonzero_voxel_volume
+        liste.loc[i, "volume_lesion"]= nonzero_voxel_volume
 
 ##############################################################################
 # Plotting functions
