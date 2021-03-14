@@ -267,7 +267,7 @@ def scatter_network(network, liste, behavior) :
         my_dpi = 300
         fig, ax = plt.subplots(figsize=(3000 / my_dpi, 7000/ my_dpi), dpi=my_dpi, 
                                constrained_layout=True)
-        ax.scatter(liste[behavior],liste[level], s=5)
+        ax.scatter(liste[behavior], liste[level], s=5)
         for x,y,z in zip(liste[behavior],liste[level],liste.index):
             label = f"({x},{y})"
             plt.annotate(z.split('_')[1],(x,y),textcoords="offset points",
