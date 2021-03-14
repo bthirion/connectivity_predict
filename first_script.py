@@ -482,7 +482,7 @@ loop_for_stats(neuro_columns, C, D)
 
 X = EF[neuro_columns]
 y = EF["siVP"]
-yy= EF["loss in semantic fluency late postop"]
+yy = EF["loss in semantic fluency late postop"]
 zz = EF["loss in phonemic fluency laste postop"]
 
 
