@@ -285,7 +285,6 @@ less_relevant_networks = [
 
 # radar_list = [dixdixsept,small,neuf,quatre,sept,douze]
 
-
 # Plotting functions
 
 #create scatter plot for each level ( CC16, CS , CT) displaying
@@ -317,7 +316,7 @@ def scatter_network(networks, liste, behav) :
                          xytext=(10,10), size=5,
                          ha='center',bbox=dict(boxstyle = 'round,pad=0.1', 
                                                fc = 'yellow',alpha = 0.5))
-        plt.savefig(write_dir+level+"_scatter.png")
+        plt.savefig(write_dir+"_scatter.png")
         
 #create 3D plot to show relation between parameters in different lists
 
@@ -719,6 +718,7 @@ def loop_to_plot2(networks, liste,m,n):
             facecolor='w', edgecolor='w', orientation='landscape',
             papertype=None, format=None,transparent=False, bbox_inches=None, 
             pad_inches=0.1, metadata=None)
+
     
 
 ##############################################################################
