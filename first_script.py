@@ -48,6 +48,7 @@ else:
 # setting it only once to better adapt to local configuration 
 csv_file = os.path.join(data_dir, 'all_connections.csv')
 csv_file_supp = os.path.join(data_dir, 'suppl_connections.csv')
+csv_file_supp2 = os.path.join(data_dir, 'suppl_connections_2.csv')
 csv_file_behavior = os.path.join(data_dir, 'behavior_9_08022021.csv')
 
 # directory where figures are saved
@@ -108,10 +109,6 @@ ANTS = [subject for subject in unique_subjects if subject.endswith('ANTS')]
 ANTS_connectivity = average_connectivity[
     average_connectivity.subjectID.isin(ANTS)]
 
-FSL = [subject for subject in unique_subjects if subject.endswith('FSL')]
-FSL_connectivity = average_connectivity[
-    average_connectivity.subjectID.isin(FSL)]
-
 ##############################################################################
 # finally compute the  partial/total ratio in each subject
 
@@ -129,28 +126,44 @@ ANTS_ratio_transformed = 1 / (1 + np.exp(np.asarray(- ANTS_ratio,dtype=float)))
 ANTS_ratio_transformed = pd.DataFrame(ANTS_ratio_transformed)
 ANTS_ratio_transformed.name = 'ANTS_ratio_transformed'
 
-# ANTS_ratio supposeldy contains some data that are ready for machine learning
-# do the same with FSL_connectivity
-FSL_ratio = {}
-for id_ in unique_ids:
-    FSL_ratio[id_] = FSL_connectivity[id_] / (
-        1. + FSL_connectivity[id_+'_total'])
 
-# Make a DataFrame from it : 
-FSL_ratio = pd.DataFrame(FSL_ratio)
-FSL_ratio.name = 'FSL_ratio'
-
-# Transform data with sigmoid function 
-FSL_ratio_transformed = 1 / (1 + np.exp(np.asarray(- FSL_ratio, dtype=float)))
-FSL_ratio_transformed = pd.DataFrame(FSL_ratio_transformed)
-FSL_ratio_transformed.name = 'FSL_ratio_transformed'
 
 ##############################################################################
-#add supplementary patients
-supp_ratio = pd.read_csv(csv_file_supp, index_col=0, sep=";")
-ANTS_ratio=pd.concat([ANTS_ratio, supp_ratio])
+#add supplementary patients (first subject)
+supp_ratio_2 = pd.read_csv(csv_file_supp, index_col=0, sep=";")
+ANTS_ratio=pd.concat([ANTS_ratio, supp_ratio_2])
+#add supplementary patients (second subject)
+supp_ratio_3 = pd.read_csv(csv_file_supp2, index_col=0, sep=";")
+# get the pathway names
+connection_ids_3 = supp_ratio_3.columns[2:] # discard subjectID and TrackID
+unique_ids_3 = np.unique([c.split('_')[0] + '_'  + c.split('_')[1]
+                        for c in connection_ids_3])
 
+supp_connectivity_3 = {}
+for id_ in unique_ids_3:
+    relevant_ids_3 = [c for c in connection_ids_3
+                    if c.startswith(id_ + '_') or c == id_]
+    total_ids = [c for c in relevant_ids_3 if c.endswith('total')]
+    partial_ids = [c for c in relevant_ids_3 if not c.endswith('total')]
+    supp_connectivity_3[id_] = supp_ratio_3[partial_ids].sum(1).values
+    supp_connectivity_3[id_ + '_total'] = supp_ratio_3[total_ids]\
+                                              .sum(1).values
 
+# make a dataframe from it
+supp_connectivity_3 = pd.DataFrame(supp_connectivity_3)
+# add the missing columns
+supp_connectivity_3['subjectID'] = supp_ratio_3.index[0].split('_')[2]
+
+supp_ratio_3 = {}
+for id_ in unique_ids_3:
+    supp_ratio_3[id_] = supp_connectivity_3[id_] / (
+        1. + supp_connectivity_3[id_ + '_total'])
+
+# make a DataFrame from it
+supp_ratio_3 = pd.DataFrame(supp_ratio_3)
+supp_ratio_3.name = 'supp_ratio_3'
+supp_ratio_3.index = supp_connectivity_3['subjectID']
+ANTS_ratio=pd.concat([ANTS_ratio, supp_ratio_3])
 
 ##############################################################################
 # LISTS ACCORDING TO BEHAVIOR, LISTS OF NETWORKS
@@ -343,7 +356,7 @@ def tridim_plot (liste,network1,network2,network3,behav) :
     '''
     centers = [[1, 1], [-1, -1], [1, -1]]
     fig = plt.figure(1, figsize=(4, 3))
-    ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
+    ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=234)
     
     for name, label in [('no_' + behav, 0), (behav, 1)]:
         ax.text3D(liste[network1] [liste[behav] == label].astype(float).mean(),
@@ -609,8 +622,61 @@ def make_spider(networks, row, title, data, color,ax):
 #                        wspace=0.1, 
 #                        hspace=0.4)
 
+def raster_spider(networks, row, data, color,ax):
+    '''
+    
 
-def loop_to_plot1(networks, liste1,liste2, m,n):
+    Parameters
+    ----------
+    categories : networks you want to plot
+    row : number of the row corresponding to the subject you are interested in
+    (usually defined by the loop_to_plot function)
+    title : title you want to be displayed on the spider plot  
+    (usually defined by the loop_to_plot
+                                          function)
+    liste : group of patient you are interested in (usually defined
+    by the loop_to_plot function)
+    color : color to be used in the plot (usually defined by the loop_to_plot
+                                          function)
+    ax : ax for plotting (usually defined by the loop_to_plot function)
+
+    Returns
+    -------
+    A spider plot showing disconnection index multiple subjects (each subject
+                                                                 as a dot)
+
+    '''
+    
+    n_networks = len(networks)
+    # define the angle for each variable
+    angles = [n / float(n_networks) * 2 * pi for n in range(n_networks)]
+    #angles += angles[:1]   
+    # initialize the spider plot
+#    ax2 = spider.add_axes( polar=True )
+
+    # If you want the first axis to be on top:
+    ax.set_theta_offset(pi / 2)
+    ax.set_theta_direction(-1)
+
+    # Draw one axe per variable + add labels labels yet
+    plt.xticks(angles, [i for i in networks], color='black', size=10)
+
+    # Draw ylabels
+    ax.set_rlabel_position(0)
+    plt.yticks([0.1, 0.3, 0.5, 0.7],
+               ["0.1", "0.3", "0.5", "0.7"], color="grey", size=7)
+    plt.ylim(0, 0.75)
+     
+    # Ind1
+    values = data.values[row].flatten().tolist()
+    #values += values[:1]
+    ax.scatter(angles, values, color=color, s=2)
+
+
+
+
+
+def disco_mean1_indiv2(networks, liste1,liste2, m,n):
     '''
     
 
@@ -626,9 +692,9 @@ def loop_to_plot1(networks, liste1,liste2, m,n):
 
     Returns
     -------
-   Disconnection index of all subjects are overlaid on the same radar plot : 
-       cool colors for subjects without the behavior of interest
-       warm colors for subject with the behavior of interest
+   One radar plot with the mean of disconnection index for subjects of liste1
+   One radar plot per subject of list 2
+       
         
        
 
@@ -660,8 +726,57 @@ def loop_to_plot1(networks, liste1,liste2, m,n):
             papertype=None, format=None,transparent=False, bbox_inches=None, 
             pad_inches=0.1, metadata=None)
 
+def disco_2_groups(networks, liste1,liste2):
+    '''
+    
 
-def loop_to_plot2(networks, liste,m,n):
+    Parameters
+    ----------
+    categories : networks you want to plot
+    row : number of the row corresponding to the subject you are interested in
+    liste1 : first group of patient you are interested in 
+    list 2 : second group of patient you are interested in
+
+
+
+    Returns
+    -------
+   Disconnection index of all subjects are overlaid on the same radar plot : 
+       cool colors for subjects of liste1
+       warm colors for subject of liste2
+        
+       
+
+    '''
+    # initialize the figure
+    my_dpi = 300
+    fig = plt.figure(figsize=(1500/ my_dpi, 1500 / my_dpi), dpi=my_dpi)
+    # Create a color palette 
+    my_palette1 = plt.cm.get_cmap("twilight", len(liste1.index))
+
+    data=liste1[networks]
+    data2= liste2[networks]
+
+    # Loop to plot
+    ax = plt.subplot(111,polar=True)
+    for row in range(0,len(data.index)):
+        raster_spider(networks=networks, row=row, data = data, 
+                     color="blue", ax=ax)
+    for row in range(0,len(data2.index)):
+        raster_spider(networks=networks, row=row, data = data2,
+                     color="red", ax=ax)  
+
+    # save figure 
+    plt.savefig(write_dir + str(networks[0].partition('_')[0]) + '_' 
+            +"moyenne"+"_"+ liste1.name + "_vs_" + liste2.name + '.png',
+            dpi=None,
+            facecolor='w', edgecolor='w', orientation='landscape',
+            papertype=None, format=None,transparent=False, bbox_inches=None, 
+            pad_inches=0.1, metadata=None)
+
+
+
+def disco_indiv_image(networks, liste,m,n):
     '''
     
 
