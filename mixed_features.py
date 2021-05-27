@@ -1,3 +1,10 @@
+"""
+This script does the same as  population_analysis.py but with mixed features:
+cortical and white matter features for cortico-cortical networks only.
+
+Author: Bertrand Thirion, 2021
+"""
+
 import os
 import pandas as pd
 import numpy as np
@@ -14,23 +21,36 @@ data_dir = '.'
 write_dir = '/tmp'
 n_permutations = 0
 
-# Redo the thing the data with age
+# Read the cortical lesion data 
 df = pd.read_csv(
     os.path.join(data_dir, 'donnees_utilisees_17_reseaux.csv'),
     sep=',')
 df = df[df.index.astype('str') != 'nan']
-#df.drop(labels='CorticoThalamic_4', axis=1, inplace=True)
 df['Z_Score_TMT_Diff_pre'] *= -1  # make more sense
-networks = df.columns[:-4].tolist() + df.columns[-1:].tolist()
-networks = np.array(networks)
-
-others = df.columns[-5:-4].tolist() + df.columns[-1:].tolist()
-X_ = df[others].values
-
 X_columns = df.columns[1:-1].tolist()
+X2 = df[X_columns].values
 
-X = df[X_columns].values
-labels = X_columns
+#then additionally read the network lesion data
+df1 = pd.read_csv('liste_patients_gliome_final_total_avec_AGE_NSC.csv', sep=',',
+                 index_col=0)
+
+df1 = df1[df.index.astype('str') != 'nan']
+df1.drop(labels='CorticoThalamic_4', axis=1, inplace=True)
+df1['Z_Score_TMT_Diff_pre'] *= -1  # make more sense
+networks = df1.columns.tolist()
+# keep only cortico-cortical newtorks
+networks = np.array([x for x in networks if 'Cortical' in x])
+X1 = df1[networks].values
+
+# Check that the two table display the same participants
+subjects = [x.split('_')[-1] for x in df1.index]
+for s1, s2 in zip(subjects, list(df['Patient'])):
+    if s1 != s2:
+        print(s1, s2)
+
+# Merge the two type of features (hence, "mixed" features)
+X = np.hstack((X1, X2))
+labels = np.hstack((networks, X_columns))
 
 # get the target
 y = df['diff_diff'].values
@@ -78,7 +98,7 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver operating characteristic, ternary problem ')
 plt.legend(loc='lower right')
-plt.savefig(os.path.join(write_dir, 'roc_ternary_cortical.png'))
+plt.savefig(os.path.join(write_dir, 'roc_ternary_mixed.png'))
 
 
 if n_permutations > 0:
@@ -106,8 +126,8 @@ annotations = tree.plot_tree(
     clf, feature_names=labels, class_names=class_names, ax=ax,
     fontsize=6, impurity=False, filled=True, rounded=True)
 fig.subplots_adjust(top=1, bottom=0, left=0, right=1)
-plt.savefig(os.path.join(write_dir, 'tree_ternary_cortical.pdf'), dpi=300)
-plt.savefig(os.path.join(write_dir, 'tree_ternary_cortical.svg'), dpi=300)
+plt.savefig(os.path.join(write_dir, 'tree_ternary_mixed.pdf'), dpi=300)
+plt.savefig(os.path.join(write_dir, 'tree_ternary_mixed.svg'), dpi=300)
 plt.show(block=False)
 
 

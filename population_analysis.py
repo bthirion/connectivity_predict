@@ -38,7 +38,7 @@ df2 = pd.read_csv('proportion.csv', index_col=0)
 X1 = np.hstack((df1.values, X_))
 X2 = np.hstack((df2.values, X_))
 
-
+cortico_cortical_only = True
 do_probability = False
 do_proportion = False
 
@@ -56,6 +56,12 @@ else:
     labels = networks
     X = df[networks].values
 
+if cortico_cortical_only:
+    networks = np.array([x for x in networks if 'Cortical' in x] + others)
+    X = df[networks].values
+    
+    
+    
 # get the target
 y = df['diff_diff'].values
 plt.figure()
@@ -285,7 +291,6 @@ if n_permutations > 0:
     print('accuracy:', macc, 'p-value, proportion',
           (1 + np.sum(accs > macc)) * 1. / n_permutations)
 
-
     
 clf = DecisionTreeClassifier(max_depth=3)
 acc = cross_val_score(clf, X, yt, cv=cv,n_jobs=5, scoring=scoring)
@@ -326,5 +331,18 @@ accuracies = np.vstack((acc_baseline, acc_probability, acc_proportion))
 argmax_accuracy = np.argmax(accuracies, 0)
 idx, counts = np.unique(argmax_accuracy, return_counts=True)
 print(idx, counts)
+
+
+"""
+##########################################################################
+#
+from sklearn.ensemble import ExtraTreesClassifier, GradientBoostingClassifier 
+clf = ExtraTreesClassifier()
+acc_baseline = cross_val_score(clf, X, yt, cv=cv,n_jobs=5, scoring=scoring)
+print('Extra Trees: ', acc_baseline.mean())
+clf = GradientBoostingClassifier()
+acc_baseline = cross_val_score(clf, X, yt, cv=cv,n_jobs=5, scoring=scoring)
+print('GBT: ', acc_baseline.mean())
+"""
 
 plt.show(block=False)
