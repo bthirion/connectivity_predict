@@ -17,11 +17,11 @@ from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn import tree
 
-n_permutations = 1000
+n_permutations = 0
 scoring = 'neg_mean_squared_error'
 
 # Redo the thing the data with age
-df = pd.read_csv('liste_patients_gliome_final_total_avec_AGE_NSC.csv', sep=';',
+df = pd.read_csv('liste_patients_gliome_final_total_avec_AGE_NSC.csv', sep=',',
                  index_col=0)
 
 df = df[df.index.astype('str') != 'nan']
@@ -33,12 +33,11 @@ networks = np.array(networks)
 others = df.columns[-5:-4].tolist() + df.columns[-1:].tolist()
 X_ = df[others].values
 
-"""
 df1 = pd.read_csv('probability.csv', index_col=0)
 df2 = pd.read_csv('proportion.csv', index_col=0)
 X1 = np.hstack((df1.values, X_))
 X2 = np.hstack((df2.values, X_))
-"""
+
 
 do_probability = False
 do_proportion = False
@@ -179,7 +178,7 @@ yt = (y > -1.5).astype(int) +  (y > 1.5).astype(int)
 scoring = 'roc_auc_ovr'
 class_names = ['y < -1.5', '-1.5 < y< 1.5', 'y > 1.5']
 
-clf = RandomForestClassifier()  # max_depth=2, max_features=1
+clf = RandomForestClassifier(max_depth=2)  # , max_features=1
 
 #define cross_validation scheme
 cv = StratifiedShuffleSplit(n_splits=100, test_size=.25, random_state=0)
@@ -191,8 +190,51 @@ clf.fit(X, yt)
 print(np.array(labels)[np.argsort(clf.feature_importances_)[-5:]])
 
 # Make an ROC curve
-from sklearn import metrics
-from sklearn.model_selection import train_test_split
+#from sklearn import metrics
+#from sklearn.model_selection import train_test_split
+from sklearn.metrics import auc, plot_roc_curve
+
+tprs = []
+aucs = []
+mean_fpr = np.linspace(0, 1, 100)
+fig, ax = plt.subplots()
+for i, (train, test) in enumerate(cv.split(X, yt)):
+    clf.fit(X[train], yt[train])
+    #viz = plot_roc_curve(clf, X[test], yt[test],
+    #                     name='ROC fold {}'.format(i),
+    #                     alpha=0.3, lw=1, ax=ax)
+    y_score = clf.predict_proba(X[test])
+    fpr, tpr, thresholds = metrics.roc_curve(yt[test], y_score.T[1],
+                                             pos_label=1)
+
+    interp_tpr = np.interp(mean_fpr, fpr, tpr)
+    interp_tpr[0] = 0.0
+    tprs.append(interp_tpr)
+    # aucs.append(viz.roc_auc)
+ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
+        label='Chance', alpha=.8)
+
+aucs = acc
+mean_tpr = np.mean(tprs, axis=0)
+mean_tpr[-1] = 1.0
+mean_auc = auc(mean_fpr, mean_tpr)
+std_auc = np.std(aucs)
+ax.plot(mean_fpr, mean_tpr, color='b',
+        label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
+        lw=2, alpha=.8)
+
+std_tpr = np.std(tprs, axis=0)
+tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
+ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
+                label=r'$\pm$ 1 std. dev.')
+
+ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05],
+       title="Receiver operating characteristic, ternary problem ")
+ax.legend(loc="lower right")
+plt.savefig('/tmp/roc_ternary.png')
+
+"""
 X_train, X_test, y_train, y_test = train_test_split(X, yt, test_size=.5,
                                                     random_state=0)
 
@@ -210,7 +252,7 @@ plt.ylabel('True Positive Rate')
 plt.title('Receiver operating characteristic, ternary problem ')
 plt.legend(loc='lower right')
 plt.savefig('/tmp/roc_ternary.png')
-
+"""
 
 if n_permutations > 0:
     y_ = yt.copy()
