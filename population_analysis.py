@@ -58,6 +58,7 @@ else:
 
 if cortico_cortical_only:
     networks = np.array([x for x in networks if 'Cortical' in x] + others)
+    labels = networks
     X = df[networks].values
     
     
@@ -193,7 +194,8 @@ cv = StratifiedShuffleSplit(n_splits=100, test_size=.25, random_state=0)
 acc = cross_val_score(clf, X, yt, cv=cv,n_jobs=5, scoring=scoring)
 print('Ternary accuracy, RF: ', acc.mean())
 clf.fit(X, yt)
-print(np.array(labels)[np.argsort(clf.feature_importances_)[-5:]])
+main_rf_features = np.array(labels)[np.argsort(clf.feature_importances_)[-5:]]
+print(main_rf_features)
 
 # Make an ROC curve
 #from sklearn import metrics
@@ -297,25 +299,35 @@ acc = cross_val_score(clf, X, yt, cv=cv,n_jobs=5, scoring=scoring)
 print('Ternary accuracy, tree: ', acc.mean())
 clf.fit(X, yt)
 
-plt.figure(figsize=(9, 6))
+plt.figure(figsize=(9, 4))
+ax = plt.subplot(111)
 annotations = tree.plot_tree(
-    clf, feature_names=labels, class_names=class_names,
+    clf, feature_names=labels, class_names=class_names, ax=ax,
     fontsize=6, impurity=False, filled=True, rounded=True)
+plt.subplots_adjust(top=1, bottom=0, left=0, right=1)
 plt.savefig('/tmp/tree_ternary.pdf', dpi=300)
 plt.savefig('/tmp/tree_ternary.svg')
 
 # bootstrap
-cv = StratifiedShuffleSplit(n_splits=5, test_size=.25, random_state=0)
+cv = StratifiedShuffleSplit(n_splits=100, test_size=.25, random_state=0)
 for i, (train_index, test_index) in enumerate(cv.split(X, yt)):
+    # look for the most typical tree
     X_train, y_test = X[train_index], yt[train_index]
     clf.fit(X_train, y_test)
-    plt.figure(figsize=(9, 6))
-    tree.plot_tree(
-        clf, feature_names=labels, class_names=class_names,
-        fontsize=6, impurity=False, filled=True, rounded=True)
-    plt.savefig('/tmp/tree_ternary_%02d.svg' % i, dpi=300)
-    plt.close()
-
+    main_tree_features = np.array(labels)[
+        np.argsort(clf.feature_importances_)[-5:]]
+    if (main_tree_features == main_rf_features).all():
+        print(i)
+        plt.figure(figsize=(9, 4))
+        ax = plt.subplot(111)
+        tree.plot_tree(
+            clf, feature_names=labels, class_names=class_names, ax=ax,
+            fontsize=6, impurity=False, filled=True, rounded=True)
+        plt.subplots_adjust(top=1, bottom=0, left=0, right=1)
+        plt.savefig('/tmp/tree_ternary_%02d.svg' % i, dpi=300)
+        plt.close()
+        break
+        
 ##########################################################################
 # compare accuracy of baseline vs proportion vs probability
 # probability: X = X1
