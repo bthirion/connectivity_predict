@@ -104,7 +104,7 @@ fig = plt.figure(figsize=(9, 4))
 ax = plt.subplot(111)
 annotations = tree.plot_tree(
     clf, feature_names=labels, class_names=class_names, ax=ax,
-    fontsize=6, impurity=False, filled=True, rounded=True)
+    fontsize=8, impurity=False, filled=True, rounded=True)
 fig.subplots_adjust(top=1, bottom=0, left=0, right=1)
 plt.savefig(os.path.join(write_dir, 'tree_ternary_cortical.pdf'), dpi=300)
 plt.savefig(os.path.join(write_dir, 'tree_ternary_cortical.svg'), dpi=300)
