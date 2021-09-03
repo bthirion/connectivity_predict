@@ -238,9 +238,9 @@ ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
                 label=r'$\pm$ 1 std. dev.')
 
 ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05],
-       title="Receiver operating characteristic, ternary problem ")
+       title="Receiver operating characteristic, ternary problem\n 17 networks disconnection")
 ax.legend(loc="lower right")
-plt.savefig('/tmp/roc_ternary.png')
+plt.savefig('/tmp/roc_ternary_17networks_disconnection.png')
 
 """
 X_train, X_test, y_train, y_test = train_test_split(X, yt, test_size=.5,

@@ -62,6 +62,7 @@ clf.fit(X, yt)
 print(np.array(labels)[np.argsort(clf.feature_importances_)[-5:]])
 
 # Make an ROC curve
+"""
 X_train, X_test, y_train, y_test = train_test_split(X, yt, test_size=.5,
                                                     random_state=0)
 
@@ -79,7 +80,45 @@ plt.ylabel('True Positive Rate')
 plt.title('Receiver operating characteristic, ternary problem ')
 plt.legend(loc='lower right')
 plt.savefig(os.path.join(write_dir, 'roc_ternary_cortical.png'))
+"""
+from sklearn.metrics import auc, plot_roc_curve
 
+tprs = []
+aucs = []
+mean_fpr = np.linspace(0, 1, 100)
+fig, ax = plt.subplots()
+for i, (train, test) in enumerate(cv.split(X, yt)):
+    clf.fit(X[train], yt[train])
+    y_score = clf.predict_proba(X[test])
+    fpr, tpr, thresholds = metrics.roc_curve(yt[test], y_score.T[1],
+                                             pos_label=1)
+
+    interp_tpr = np.interp(mean_fpr, fpr, tpr)
+    interp_tpr[0] = 0.0
+    tprs.append(interp_tpr)
+    # aucs.append(viz.roc_auc)
+ax.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
+        label='Chance', alpha=.8)
+
+aucs = acc
+mean_tpr = np.mean(tprs, axis=0)
+mean_tpr[-1] = 1.0
+mean_auc = auc(mean_fpr, mean_tpr)
+std_auc = np.std(aucs)
+ax.plot(mean_fpr, mean_tpr, color='b',
+        label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
+        lw=2, alpha=.8)
+
+std_tpr = np.std(tprs, axis=0)
+tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
+ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=.2,
+                label=r'$\pm$ 1 std. dev.')
+
+ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05],
+       title="Receiver operating characteristic, ternary problem \n 17 networks overlap")
+ax.legend(loc="lower right")
+plt.savefig('/tmp/roc_ternary_17networks_overlap.png')
 
 if n_permutations > 0:
     y_ = yt.copy()
